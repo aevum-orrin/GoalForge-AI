@@ -1,0 +1,42 @@
+# Conda environment for GoalForge AI.
+#   Create:  conda env create -f environment.yml
+#   Update:  conda env update -f environment.yml --prune
+# On UMich Great Lakes, install Miniforge first (see CLAUDE.md), then run the above.
+name: goalforge
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  # --- scientific core ---
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - matplotlib
+  - seaborn
+  # --- tooling ---
+  - jupyterlab
+  - pyyaml
+  - requests
+  - tqdm
+  - python-dotenv
+  - pyarrow            # parquet I/O for processed data
+  # --- gradient boosting ---
+  - xgboost
+  - lightgbm
+  # --- testing / lint ---
+  - pytest
+  - ruff
+  - pip:
+      # Football data + analytics (pip-only)
+      - soccerdata     # FBref / Understat / Sofascore scrapers
+      - statsbombpy    # StatsBomb open event data
+      - socceraction   # VAEP / xT player action-value models
+      - penaltyblog    # Dixon-Coles, bivariate Poisson, rating models
+      # Probabilistic / deep learning — install GPU builds on a GPU node per the
+      # Great Lakes CUDA toolkit (see CLAUDE.md / slurm/). Left commented so a plain
+      # `conda env create` stays CPU-only and reproducible.
+      # - torch
+      # - numpyro      # GPU Bayesian inference via JAX (optional)

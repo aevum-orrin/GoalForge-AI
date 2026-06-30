@@ -1,0 +1,27 @@
+# pip requirements (mirror of environment.yml for venv users).
+# Prefer the conda env on Great Lakes; this is a fallback.
+numpy
+pandas
+scipy
+scikit-learn
+statsmodels
+matplotlib
+seaborn
+jupyterlab
+pyyaml
+requests
+tqdm
+python-dotenv
+pyarrow
+xgboost
+lightgbm
+pytest
+ruff
+# football data + analytics
+soccerdata
+statsbombpy
+socceraction
+penaltyblog
+# deep learning / probabilistic — install the CUDA-matched build on a GPU node
+# torch
+# numpyro

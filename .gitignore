@@ -1,0 +1,64 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# ---- Environments ----
+.venv/
+venv/
+env/
+.conda/
+.python-version
+.env
+.env.*
+!.env.example
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Data & models (keep folder structure via .gitkeep) ----
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+!data/**/.gitkeep
+models/*
+!models/.gitkeep
+reports/figures/*
+!reports/figures/.gitkeep
+
+# ---- Experiment tracking / artifacts ----
+wandb/
+mlruns/
+lightning_logs/
+outputs/
+*.ckpt
+*.pt
+*.pth
+*.joblib
+*.pkl
+*.parquet
+*.feather
+
+# ---- Slurm logs ----
+slurm/logs/*
+!slurm/logs/.gitkeep
+slurm-*.out
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ---- Caches ----
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/

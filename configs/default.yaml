@@ -1,0 +1,41 @@
+# Default configuration for a GoalForge prediction run.
+# Override on the CLI or with an experiment-specific config in configs/.
+# This file documents the intended config surface; the pipeline is described in
+# docs/workflow.md and is not implemented yet.
+
+project:
+  seed: 42
+  scratch_dir: /scratch/your_account/ctlang/goalforge   # big data on /scratch (adjust)
+
+data:
+  provider: statsbomb        # statsbomb | fbref | understat | api_football
+  cache_dir: data/raw
+  lookback_years: 3          # player/coach history window
+  competitions:
+    - "FIFA World Cup"
+
+features:
+  player_form_halflife_days: 365   # exponential time decay for recent form
+  include_coach_effect: true
+  include_market_value: false
+
+# Team-level scoreline backbone (see docs/workflow.md)
+score_model:
+  type: dixon_coles          # dixon_coles | bivariate_poisson | bayesian_hierarchical | ml
+  time_decay_xi: 0.0018      # Dixon-Coles per-day decay
+  home_advantage: true       # auto-disabled for neutral-venue tournaments
+
+# Player-level goal/assist allocation (see docs/workflow.md)
+player_model:
+  goal_weight: xg_per90      # how to weight a player's share of team goals
+  assist_weight: xa_per90
+  use_penalty_taker: true
+
+simulation:
+  n_sims: 50000              # Monte Carlo iterations per match
+  device: cpu                # cpu | cuda  (GPU for large vectorized sims)
+  max_goals: 12
+
+output:
+  top_k_scorers: 5
+  save_dir: reports
