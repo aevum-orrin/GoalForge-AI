@@ -16,7 +16,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", default=os.path.join(
         os.environ.get("GOALFORGE_MODELS_DIR", "models"), "agent_intl.pkl"))
-    ap.add_argument("--out", default="model.json")
+    ap.add_argument("--out", default="api/model.json")
     args = ap.parse_args()
 
     a = GoalForgeAgent.load(args.checkpoint)

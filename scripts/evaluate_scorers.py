@@ -7,8 +7,6 @@ anytime-scorer probabilities from the model and check whether each actual goal's
 the team's top-k predicted scorers (recall@k). With 11 players on the pitch, random would give
 k/11; a useful player model should beat that.
 """
-import numpy as np
-
 from goalforge import inference
 from goalforge.data.statsbomb import WORLD_CUP_2022, load_competition
 

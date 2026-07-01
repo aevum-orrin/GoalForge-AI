@@ -24,8 +24,8 @@ from ..inference import predict as infer_predict
 from .schemas import PredictRequest, PredictResponse, ScoreCell, ScorerProb
 
 _REPO = Path(__file__).resolve().parents[3]
-MODEL_JSON = os.environ.get("GOALFORGE_MODEL_JSON") or str(_REPO / "model.json")
-WEB_DIR = _REPO / "web"
+MODEL_JSON = os.environ.get("GOALFORGE_MODEL_JSON") or str(_REPO / "api" / "model.json")
+WEB_DIR = _REPO / "public"
 
 app = FastAPI(title="GoalForge API", version="0.2")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

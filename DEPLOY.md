@@ -1,36 +1,33 @@
 # Deploying GoalForge on Vercel
 
-The current (statistical) model is tiny (`model.json` ≈ 100 KB) and inference is pure NumPy, so
-the whole app — static frontend **and** the prediction API — runs on Vercel serverless.
+The current (statistical) model is tiny (`api/model.json` ≈ 100 KB) and inference is pure NumPy,
+so the whole app runs on Vercel: a static frontend + one small serverless function.
 
-## What's here
-- `web/` — static frontend (served at `/`).
-- `api/index.py` — Vercel Python function exposing the FastAPI app; serves `/api/*` and `web/`.
-  NumPy-only inference from `model.json` (no SciPy / Pandas / pickle / torch).
-- `model.json` — the exported model (regenerate with `python scripts/export_model.py`).
-- `vercel.json` — routes all requests to the function; bundles `src/`, `web/`, `model.json`.
-- `requirements.txt` — minimal runtime deps (numpy, fastapi, uvicorn). Full dev deps are in
-  `requirements-dev.txt` / `environment.yml`.
+## Structure (standard Vercel layout)
+- `public/` — static frontend, served by Vercel at `/`.
+- `api/index.py` — **self-contained** serverless function (NumPy + FastAPI only; no imports from
+  `src/`, no static serving). Handles `/api/*`; reads `api/model.json` beside it.
+- `api/model.json` — the exported model (regenerate with `python scripts/export_model.py`).
+- `vercel.json` — rewrites `/api/*` to the function; `public/` is auto-served.
+- `requirements.txt` — minimal (`numpy`, `fastapi`, `uvicorn`). `.vercelignore` excludes
+  everything else (src/, data/, tests/, …) so the function bundle stays tiny.
 
-## Connect (do this on Vercel — you handle the GitHub↔Vercel link)
-1. Push this repo to GitHub (done).
-2. vercel.com → **New Project** → import the `GoalForge-AI` repo.
-3. Framework preset: **Other**; root directory: repo root; no build/output overrides (the
-   `vercel.json` handles routing). Vercel installs `requirements.txt` and builds the function.
-4. **Deploy** → public URL (e.g. `goalforge-ai.vercel.app`). Every `git push` auto-redeploys.
-
-If the build complains about missing modules/files, check `vercel.json`'s `includeFiles` and the
-Python version — tell me the build log and I'll adjust.
+## Connect (you handle the GitHub↔Vercel link)
+1. Push to GitHub (done).
+2. vercel.com → New Project → import `GoalForge-AI`. Framework preset **Other**; root = repo root;
+   no build/output overrides. Vercel installs `requirements.txt` and builds `api/index.py`.
+3. Deploy → public URL. Every `git push` redeploys.
+4. If a request fails, open the deployment's **Logs**; the full traceback tells us the cause
+   (send it over and I'll fix). Locally the same app runs via
+   `python -m uvicorn goalforge.api.app:app --port 8793`.
 
 ## Updating the model
-Retrain on Great Lakes, re-export, commit:
 ```bash
-python scripts/train.py
-python scripts/export_model.py     # writes model.json
-git add model.json && git commit -m "update model" && git push
+python scripts/train.py            # retrain on Great Lakes
+python scripts/export_model.py     # writes api/model.json
+git add api/model.json && git commit -m "update model" && git push
 ```
-Vercel redeploys with the new `model.json`.
 
 ## Endgame (after Phase 3)
-Once neural models arrive, the heavy model moves to a **Hugging Face Space** (runs torch + GPU);
+Once neural models arrive, the heavy model moves to a **Hugging Face Space** (torch + GPU);
 Vercel keeps serving the frontend, calling the HF backend. See docs/workflow.md.

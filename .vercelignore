@@ -1,15 +1,19 @@
-# Keep the Vercel deployment small — only api/, src/, web/, model.json, requirements.txt are needed.
+# The Vercel deploy only needs api/ (self-contained function + model.json), public/ (frontend),
+# requirements.txt and vercel.json. Everything else is excluded to keep the function small.
 .venv/
 data/
 models/
-Literature Review/
-notebooks/
-reports/
+src/
+scripts/
 slurm/
 tests/
 docs/
 app/
-scripts/
+notebooks/
+reports/
+Literature Review/
+environment.yml
+requirements-dev.txt
 *.pkl
 *.parquet
 __pycache__/

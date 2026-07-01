@@ -35,7 +35,8 @@ models/          Saved model artifacts — contents git-ignored
 notebooks/       Exploratory analysis
 reports/         Generated figures and prediction outputs
 app/             Streamlit web UI
-web/             FastAPI frontend (static HTML/CSS/JS)
+public/          web frontend (static HTML/CSS/JS; served by FastAPI locally & Vercel)
+api/             self-contained Vercel serverless function (numpy + fastapi)
 scripts/         CLI entry points (run_pipeline / train / run_worldcup)
 slurm/           Great Lakes (Slurm) job templates
 src/goalforge/   Main Python package
