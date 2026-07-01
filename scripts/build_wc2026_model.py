@@ -56,10 +56,20 @@ def order_xi(rows: pd.DataFrame) -> list[str]:
     return starters + rest
 
 
+def _load_form():
+    """{(team, player): club-form row} from build_player_form.py, or {} if not built."""
+    fp = os.path.join(os.environ.get("GOALFORGE_DATA_DIR", "data"), "player_form.parquet")
+    if not os.path.exists(fp):
+        return {}
+    df = pd.read_parquet(fp)
+    return {(r.team, r.player): r for _, r in df.iterrows() if pd.notna(r.club_nineties)}
+
+
 def build(checkpoint: str, squads_pq: str) -> dict:
     agent = GoalForgeAgent.load(checkpoint)
     dc, dc_meta = agent.scoreline, agent.meta
     sq = pd.read_parquet(squads_pq)
+    form = _load_form()
 
     scoring, assist, info, squads, groups = {}, {}, {}, {}, {}
     for team, rows in sq.groupby("team"):
@@ -67,10 +77,19 @@ def build(checkpoint: str, squads_pq: str) -> dict:
         groups[team] = rows.group.iloc[0]
         for _, r in rows.iterrows():
             pos, caps, goals, name = norm_pos(r.pos), int(r.caps), int(r.goals), r.player
-            rate = (goals + K * SCORE_PRIOR[pos]) / (caps + K)          # goals per appearance
+            f = form.get((team, name))
+            if f is not None:            # blend recent club xG (scorer) & xA (assister, the Step-2 win)
+                n90, cxg, cxa = float(f["club_nineties"]), float(f["club_xG"]), float(f["club_xA"])
+                rate = (goals + cxg + K * SCORE_PRIOR[pos]) / (caps + n90 + K)
+                arate = (cxa + K * ASSIST_PRIOR[pos]) / (n90 + K)
+            else:                        # no top-5-league data -> international + position prior only
+                rate = (goals + K * SCORE_PRIOR[pos]) / (caps + K)
+                arate = ASSIST_PRIOR[pos] * (0.7 + 0.3 * caps / (caps + 30))
             scoring[name] = round(rate, 5)
-            assist[name] = round(ASSIST_PRIOR[pos] * (0.7 + 0.3 * caps / (caps + 30)), 5)
-            info[name] = {"team": team, "pos": pos, "caps": caps, "goals": goals, "club": r.club}
+            assist[name] = round(arate, 5)
+            info[name] = {"team": team, "pos": pos, "caps": caps, "goals": goals, "club": r.club,
+                          "club_xg": round(float(f["club_xG"]), 1) if f is not None else None,
+                          "club_xa": round(float(f["club_xA"]), 1) if f is not None else None}
 
     g_score = round(sum(scoring.values()) / len(scoring), 5)
     g_assist = round(sum(assist.values()) / len(assist), 5)
@@ -78,13 +97,15 @@ def build(checkpoint: str, squads_pq: str) -> dict:
         "competition": "2026 FIFA World Cup", "n_teams": int(sq.team.nunique()),
         "hosts": HOSTS, "groups": groups,
         "team_source": "martj42 international results (Dixon-Coles)",
-        "player_source": "Wikipedia 2026 World Cup squads (caps & international goals)",
+        "player_source": "Wikipedia 2026 squads (caps & intl goals) + Understat club xG/xA "
+                         "(5 leagues, 2018-2022) for players with top-5-league data",
+        "club_coverage": f"{len(form)}/{int(len(sq))} squad players have club xG/xA",
         "cutoff": dc_meta.get("cutoff", ""),
         "generated": dt.date.today().isoformat(),
         "method": {
             "scoreline": "Dixon-Coles team strengths + Poisson score grid",
-            "scorer": "international goals/caps, shrunk to a position prior (K=8 caps)",
-            "assist": "position-based estimate (no public international assist data)",
+            "scorer": "intl goals/caps blended with recent club xG (Understat), shrunk to position",
+            "assist": "recent club xA/90 (Understat chance creation) where available, else position prior",
             "default_xi": "most-capped player per position in a 4-3-3 (editable)",
             "venue": "neutral by default; hosts (USA/Canada/Mexico) get home advantage",
         },

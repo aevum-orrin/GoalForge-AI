@@ -54,8 +54,9 @@ async function loadXI(side) {
   const def = new Set(default_xi);
   const row = (p) => {
     const i = info && info[p];
+    const xa = i && i.club_xa != null ? ` · xA ${i.club_xa}` : '';
     const meta = i && i.caps != null
-      ? `<span class="pmeta">${i.pos || ''} · ${i.caps} caps · ${i.goals} gls</span>` : '';
+      ? `<span class="pmeta">${i.pos || ''} · ${i.caps} caps · ${i.goals} gls${xa}</span>` : '';
     return `<label><input type="checkbox" value="${p}" ${def.has(p) ? 'checked' : ''}/>
       <span class="pname">${p}</span>${meta}</label>`;
   };

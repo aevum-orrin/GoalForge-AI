@@ -79,7 +79,9 @@ ruff check src tests api scripts
 # deployed 2026 World Cup model (real 48 squads -> api/model.json, served on Vercel)
 python scripts/train.py                # (re)fit Dixon-Coles team layer -> models/agent_intl.pkl
 python scripts/scrape_wc2026.py        # scrape 48 real 2026 squads (Wikipedia) -> scratch cache
-python scripts/build_wc2026_model.py   # combine -> api/model.json (48 teams, caps/goals scorers)
+python scripts/fetch_understat.py      # club xG/xA per player (5 leagues; free Understat mirror)
+python scripts/build_player_form.py    # match club form onto 2026 squads -> player_form.parquet
+python scripts/build_wc2026_model.py   # combine -> api/model.json (xA assists + club-enriched scorers)
 
 # (planned) pipeline entry points — see docs/workflow.md
 python -m goalforge.data.download       --config configs/default.yaml   # fetch & cache data

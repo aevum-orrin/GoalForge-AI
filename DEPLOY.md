@@ -34,11 +34,15 @@ serverless functions. This mirrors the working reference project `aevum-orrin/ap
 ```bash
 python scripts/train.py               # (re)fit the Dixon-Coles team layer -> models/agent_intl.pkl
 python scripts/scrape_wc2026.py       # scrape the 48 real 2026 squads (Wikipedia) -> scratch cache
-python scripts/build_wc2026_model.py  # combine -> api/model.json (48 teams, caps/goals scorer rates)
+python scripts/fetch_understat.py     # club xG/xA per player (5 big leagues; free Understat mirror)
+python scripts/build_player_form.py   # name-match club form onto the 2026 squads -> player_form
+python scripts/build_wc2026_model.py  # combine -> api/model.json (xA assists + club-enriched scoring)
 git add api/model.json && git commit -m "update 2026 model" && git push
 ```
-`build_wc2026_model.py` reuses the validated team checkpoint for the scoreline layer and derives
-scorer rates from each player's real international goals-per-cap; see its module docstring.
+`build_wc2026_model.py` reuses the validated team checkpoint for the scoreline, and for the ~1/3
+of squad players with top-5-league data blends recent club **xG** (scorer) and **xA** (assister,
+the validated chance-creation signal); the rest fall back to international goals/caps + a position
+prior. See docs/evaluation.md §8-11 for the honest evaluation behind these choices.
 
 ## Endgame (after Phase 3)
 Once neural models arrive, the heavy model moves to a **Hugging Face Space** (torch + GPU);
