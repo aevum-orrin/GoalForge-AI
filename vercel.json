@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/index.py": { "includeFiles": "api/model.json" }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" }
   ]

@@ -1,36 +1,57 @@
 """Self-contained GoalForge prediction API for Vercel (NumPy + FastAPI only).
 
-No imports from the `goalforge` package and no static-file serving — so the serverless bundle
-is tiny and has no cross-directory/path dependencies. The prediction logic mirrors
-`goalforge.simulation.montecarlo` exactly (verified in tests). Reads the model from
-`api/model.json` (bundled beside this file). The frontend is served separately from `public/`.
+No imports from the `goalforge` package and no static-file serving, so the serverless bundle is
+tiny with no cross-directory dependencies. The prediction logic mirrors
+`goalforge.simulation.montecarlo` exactly (verified in tests). The model (`api/model.json`) is
+loaded lazily and searched on several paths, so a missing file yields a clear API error rather
+than an import crash. The frontend is served separately from `public/`.
 """
+from __future__ import annotations
+
 import json
 import math
 from pathlib import Path
+from typing import List, Optional
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-MODEL = json.loads((Path(__file__).parent / "model.json").read_text())
-
 app = FastAPI(title="GoalForge API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+_MODEL = None
+
+
+def _load_model() -> dict:
+    here = Path(__file__).resolve().parent
+    candidates = [here / "model.json", here.parent / "model.json",
+                  Path.cwd() / "api" / "model.json", Path("/var/task/api/model.json")]
+    for p in candidates:
+        if p.exists():
+            return json.loads(p.read_text())
+    raise HTTPException(503, "model.json not found (run scripts/export_model.py)")
+
+
+def model() -> dict:
+    global _MODEL
+    if _MODEL is None:
+        _MODEL = _load_model()
+    return _MODEL
 
 
 class PredictRequest(BaseModel):
     home_team: str
     away_team: str
-    home_xi: list[str] | None = None
-    away_xi: list[str] | None = None
+    home_xi: Optional[List[str]] = None
+    away_xi: Optional[List[str]] = None
     neutral: bool = True
-    n_sims: int = 50_000
+    n_sims: int = 50000
 
 
-def _expected_goals(home, away, neutral):
-    s = MODEL["score"]
+def _expected_goals(M, home, away, neutral):
+    s = M["score"]
     att, dfc = s["attack"], s["defence"]
     ha = 0.0 if neutral else s["home_adv"]
     lh = math.exp(s["mu"] + ha + att.get(home, 0.0) + dfc.get(away, 0.0))
@@ -38,8 +59,8 @@ def _expected_goals(home, away, neutral):
     return lh, la
 
 
-def _rate(name, kind):
-    p = MODEL["players"]
+def _rate(M, name, kind):
+    p = M["players"]
     table = p["scoring"] if kind == "scoring" else p["assist"]
     default = p["global_score"] if kind == "scoring" else p["global_assist"]
     return float(table.get(name, default))
@@ -57,24 +78,24 @@ def _allocate(counts, weights, rng):
     return out
 
 
-def _predict(home, away, home_xi, away_xi, neutral, n_sims,
+def _predict(M, home, away, home_xi, away_xi, neutral, n_sims,
              assisted_rate=0.78, pen_fraction=0.10, max_goals=10):
     rng = np.random.default_rng(0)
-    lh, la = _expected_goals(home, away, neutral)
+    lh, la = _expected_goals(M, home, away, neutral)
     gh = rng.poisson(lh, n_sims)
     ga = rng.poisson(la, n_sims)
 
     K = max_goals
-    M = np.zeros((K + 1, K + 1))
-    np.add.at(M, (np.clip(gh, 0, K), np.clip(ga, 0, K)), 1.0)
-    M /= n_sims
-    order = np.argsort(M, axis=None)[::-1][:6]
-    top = [{"home": int(i), "away": int(j), "prob": float(M[i, j])}
-           for i, j in (np.unravel_index(o, M.shape) for o in order)]
+    grid = np.zeros((K + 1, K + 1))
+    np.add.at(grid, (np.clip(gh, 0, K), np.clip(ga, 0, K)), 1.0)
+    grid /= n_sims
+    order = np.argsort(grid, axis=None)[::-1][:6]
+    top = [{"home": int(i), "away": int(j), "prob": float(grid[i, j])}
+           for i, j in (np.unravel_index(o, grid.shape) for o in order)]
 
     def team_alloc(counts, xi):
-        sw = np.array([max(_rate(n, "scoring"), 0.0) for n in xi], dtype=float)
-        aw = np.array([max(_rate(n, "assist"), 0.0) for n in xi], dtype=float)
+        sw = np.array([max(_rate(M, n, "scoring"), 0.0) for n in xi], dtype=float)
+        aw = np.array([max(_rate(M, n, "assist"), 0.0) for n in xi], dtype=float)
         pen = int(np.argmax(sw)) if len(xi) else None
         gp = rng.binomial(counts, pen_fraction) if (pen is not None and pen_fraction > 0) \
             else np.zeros_like(counts)
@@ -102,31 +123,37 @@ def _predict(home, away, home_xi, away_xi, neutral, n_sims,
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "teams": len(MODEL["squads"]), "meta": MODEL.get("meta", {})}
+    try:
+        return {"status": "ok", "teams": len(model()["squads"])}
+    except Exception as e:  # never fail import; report clearly
+        return {"status": "error", "detail": str(getattr(e, "detail", e))}
 
 
 @app.get("/api/teams")
 def teams():
-    return {"teams": sorted(MODEL["squads"].keys()), "meta": MODEL.get("meta", {})}
+    M = model()
+    return {"teams": sorted(M["squads"].keys()), "meta": M.get("meta", {})}
 
 
 @app.get("/api/teams/{team}/squad")
 def squad(team: str):
-    if team not in MODEL["squads"]:
+    M = model()
+    if team not in M["squads"]:
         raise HTTPException(404, f"unknown team: {team}")
-    return {"team": team, "players": MODEL["squads"][team], "default_xi": MODEL["squads"][team][:11]}
+    return {"team": team, "players": M["squads"][team], "default_xi": M["squads"][team][:11]}
 
 
 @app.post("/api/predict")
 def predict(req: PredictRequest):
+    M = model()
     for t in (req.home_team, req.away_team):
-        if t not in MODEL["squads"]:
+        if t not in M["squads"]:
             raise HTTPException(404, f"unknown team: {t}")
     if req.home_team == req.away_team:
         raise HTTPException(400, "home_team and away_team must differ")
-    home_xi = req.home_xi or MODEL["squads"][req.home_team][:11]
-    away_xi = req.away_xi or MODEL["squads"][req.away_team][:11]
+    home_xi = req.home_xi or M["squads"][req.home_team][:11]
+    away_xi = req.away_xi or M["squads"][req.away_team][:11]
     if not home_xi or not away_xi:
         raise HTTPException(400, "each team needs at least one player")
     n_sims = int(np.clip(req.n_sims, 1_000, 200_000))
-    return _predict(req.home_team, req.away_team, home_xi, away_xi, req.neutral, n_sims)
+    return _predict(M, req.home_team, req.away_team, home_xi, away_xi, req.neutral, n_sims)
