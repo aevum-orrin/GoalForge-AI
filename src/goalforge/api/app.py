@@ -53,7 +53,7 @@ def teams():
     return {"teams": sorted(m["squads"].keys()), "meta": m.get("meta", {})}
 
 
-@app.get("/api/teams/{team}/squad")
+@app.get("/api/squad")
 def squad(team: str):
     m = get_model()
     if team not in m["squads"]:

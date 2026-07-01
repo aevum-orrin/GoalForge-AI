@@ -25,7 +25,7 @@ async function init() {
 async function loadXI(side) {
   const team = $(side).value;
   $(side === 'home' ? 'homeName' : 'awayName').textContent = team;
-  const { players, default_xi } = await api(`/api/teams/${encodeURIComponent(team)}/squad`);
+  const { players, default_xi } = await api(`/api/squad?team=${encodeURIComponent(team)}`);
   const def = new Set(default_xi);
   $(side === 'home' ? 'homeXI' : 'awayXI').innerHTML = players
     .map((p) => `<label><input type="checkbox" value="${p}" ${def.has(p) ? 'checked' : ''}/> ${p}</label>`)

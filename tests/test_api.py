@@ -33,7 +33,7 @@ def test_api_endpoints(monkeypatch):
     assert r.status_code == 200
     assert set(r.json()["teams"]) == set(teams)
 
-    r = client.get(f"/api/teams/{teams[0]}/squad")
+    r = client.get(f"/api/squad?team={teams[0]}")
     assert r.status_code == 200
     assert len(r.json()["default_xi"]) == 11
 
