@@ -12,7 +12,10 @@ mirrors the working structure of the reference project `aevum-orrin/applet-mater
   (analytic Poisson inference: scoreline + per-player Poisson-thinning anytime probabilities)
   and `api/model.json`.
 - `vercel.json` — `outputDirectory: public`; a negative-lookahead rewrite sends every non-`/api/`
-  path to the frontend; `includeFiles` bundles `api/model.json` into each function.
+  path to the frontend; `includeFiles: "api/**"` bundles the whole `api/` dir (the shared
+  `_engine.py` **and** `model.json`) into each function's lambda. Each `api/*.py` is a separate
+  lambda, so every one needs `_engine.py` shipped with it; each handler also does
+  `sys.path.insert(0, dirname(__file__))` so `import _engine` resolves inside the lambda.
 - `requirements.txt` — empty (the functions need no third-party deps).
 - `.vercelignore` — **excludes `pyproject.toml`** (and `src/`). This matters: newer Vercel builders
   scan `pyproject.toml`, and ours lists `fastapi` (optional-deps) while the real FastAPI app lives in

@@ -1,8 +1,11 @@
 """POST /api/predict — Vercel serverless function (stdlib only)."""
 import json
+import os
+import sys
 from http.server import BaseHTTPRequestHandler
 
-from _engine import load_model, predict_dict, send_json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # find sibling _engine.py in the lambda
+from _engine import load_model, predict_dict, send_json  # noqa: E402
 
 
 class handler(BaseHTTPRequestHandler):

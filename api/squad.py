@@ -1,8 +1,11 @@
 """GET /api/squad?team=NAME — Vercel serverless function (stdlib only)."""
+import os
+import sys
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
-from _engine import load_model, send_json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # find sibling _engine.py in the lambda
+from _engine import load_model, send_json  # noqa: E402
 
 
 class handler(BaseHTTPRequestHandler):
