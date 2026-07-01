@@ -6,8 +6,6 @@ tiny with no cross-directory dependencies. The prediction logic mirrors
 loaded lazily and searched on several paths, so a missing file yields a clear API error rather
 than an import crash. The frontend is served separately from `public/`.
 """
-from __future__ import annotations
-
 import json
 import math
 from pathlib import Path
