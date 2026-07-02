@@ -28,7 +28,8 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 
 LEAGUES = ["EPL", "La_liga", "Serie_A", "Bundesliga", "Ligue_1"]
 SEASONS = list(range(2018, 2026))                  # 2018/19-2025/26 (Understat year = season start)
-NUM = ["time", "goals", "xG", "npg", "npxG", "assists", "xA", "shots", "key_passes"]
+NUM = ["time", "goals", "xG", "npg", "npxG", "assists", "xA", "shots", "key_passes",
+       "xGChain", "xGBuildup"]                     # chain/buildup = playmaking involvement
 
 
 def _block(route):                                 # drop images/media/fonts to save renderer memory
